@@ -15,7 +15,6 @@ function select_action(
     phi
 )
     if rand() < epsilon
-        space =  Gym.action_space(env)
         return rand(action_rng, Gym.action_space(env))
     end
 
@@ -26,9 +25,9 @@ end
 
 function init_network()
     model = Chain(
-        Dense(20 => 8, relu),
-        Dense(8 => 4, relu),
-        Dense(4 => 2))
+        Dense(20 => 32, relu),
+        Dense(32 => 32, relu),
+        Dense(32 => 2))
 
     optimizer = Flux.setup(Flux.Adam(0.001), model)
 
