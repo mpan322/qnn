@@ -1,11 +1,12 @@
 using Gym
 using Flux
 using Distributions
-include("history.jl") 
+include("history.jl")
 
 env = Gym.make("CartPole-v1"; render_mode=:human)
 action_rng = Gym.seed(123)
 init_state, info = Gym.reset!(env)
+init_state = push!(init_state, 1)
 
 function select_action(
     epsilon,
@@ -20,7 +21,7 @@ end
 
 function init_network()
     model = Chain(
-        Dense(16 => 4, relu),
+        Dense(20 => 4, relu),
         Dense(4 => 4, relu),
         Dense(4 => 1, sigmoid))
 
@@ -34,47 +35,51 @@ function process(n, state)
     final = last(state, n)
     init = reshape(stack(final), :)
     n = size(init, 1)
-    if n < 16
-        diff = 16 - n
+    if n < 20
+        diff = 20 - n
         return reshape([init; zeros(diff, 1)], :)
     end
     return reshape(init, :)
 end
 
-Episode = Tuple{Vector{Float64}, Int64, Float64, Vector{Float64}}
+Experience = Tuple{Vector{Float64},Int64,Float64,Vector{Float64}}
 
 function train(
     capacity::Int,
-    episodes::Int64,
+    experiences::Int64,
     steps::Int64,
     epsilon::Float32,
     buff_size::Int
 )
 
-    history = History{Episode}(buff_size)
+    history = History{Experience}(buff_size)
     model, optimizer = init_network()
 
     sample_size = 100
 
-    for episode in 1:episodes
+    for experience in 1:experiences
         state = [init_state]
         phi = process(4, state)
         Gym.reset!(env)
         for t in 1:steps
             # perform next environment/action step
             action = select_action(epsilon, model, phi)
-            observation, reward, terminated, truncated, info = Gym.step!(env, action)
+            observation, reward, terminated, truncated, _ = Gym.step!(env, action)
+            push!(observation, Int64(terminated || truncated))
 
-            # calculate the episode for this transition
+            # calculate the experience for this transition
             state = push!(state, observation)
             phi_next = process(4, state)
-            println(phi_next)
-            episode = (phi, action, reward, phi_next)
+            experience = (phi, action, reward, phi_next)
             phi = phi_next
-            Add!(history, episode)
+            Add!(history, experience)
 
-            # sample circular buffer
+            # minibatch GD on sample from history
+            samples = Sample!(sample_size, history)
 
+            for sample in samples
+                println("SAMPLE!")
+            end
             # y_j = ...
 
             # gradient = calc_gradient()

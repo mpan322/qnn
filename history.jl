@@ -21,7 +21,7 @@ end
 
 function Sample!(count::Int, buffer::History{T}) where {T}
     if buffer.full
-        rand(count, buffer.under)
+        rand(buffer.under, count)
     elseif buffer.ptr == 1 && !buffer.full
         throw("cannot sample from empty history")
     else
