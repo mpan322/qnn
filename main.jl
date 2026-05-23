@@ -16,12 +16,14 @@ function select_action(
     phi
 )
     if rand() < epsilon
+        space =  Gym.action_space(env)
         return rand(action_rng, Gym.action_space(env))
     end
 
     values = model(phi)
-    best_idx = argmax(values)
-    (values[best_idx], best_idx - 1)
+    println(values)
+    _, index = findmax(values)
+    index - 1
 end
 
 function init_network()
@@ -30,7 +32,7 @@ function init_network()
         Dense(4 => 4, relu),
         Dense(4 => 2))
 
-    optimizer = Flux.setup(Flux.Adam(0.01), model)
+    optimizer = Flux.setup(Flux.Adam(0.001), model)
 
     model, optimizer
 end
@@ -59,11 +61,11 @@ function calc_pred(
     model
 )
     phi = experience[3]
-    phi_next = experience[5]
+    phi_next = experience[4]
     if is_terminal(experience)
         return phi
     else
-        return phi + gamma * max(model(phi_next))
+        return phi + gamma * maximum(model(phi_next))
     end
 end
 
@@ -92,7 +94,7 @@ function train(
         Gym.reset!(env)
         for t in 1:steps
             # perform next environment/action step
-            value, action = select_action(epsilon, model, phi)
+            action = select_action(epsilon, model, phi)
             observation, reward, terminated, truncated, _ = Gym.step!(env, action)
             push!(observation, Int64(terminated || truncated))
 
@@ -113,12 +115,14 @@ function train(
 
             # perform one gradient step
             _, grads = Flux.withgradient(model) do m
+                acc = 0
                 for (x, y) in data
-                    y_pred = max(m(x[3]))
-                    Flux.mse(y_pred, y)
+                    y_pred = maximum(m(x[1]))
+                    acc += Flux.mse(y_pred, y)
                 end
+                acc
             end
-            Flux.update(optimizer, model, grads)
+            # Flux.update(optimizer, model, grads)
 
             if terminated || truncated
                 break
@@ -132,6 +136,6 @@ function train(
 end
 
 
-train(1, 100, 100, 0.1f0, 100, 0.99)
+train(40, 10000, 100, 0.3f0, 100, 0.99)
 
 Gym.close(env)
