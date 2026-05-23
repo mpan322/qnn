@@ -26,8 +26,8 @@ end
 
 function init_network()
     model = Chain(
-        Dense(20 => 4, relu),
-        Dense(4 => 4, relu),
+        Dense(20 => 8, relu),
+        Dense(8 => 4, relu),
         Dense(4 => 2))
 
     optimizer = Flux.setup(Flux.Adam(0.001), model)
@@ -50,7 +50,7 @@ end
 Experience = Tuple{Vector{Float64},Int64,Float64,Vector{Float64}}
 
 function is_terminal(experience::Experience)
-    experience[4][5] == 1
+    experience[4][end] == 1
 end
 
 function calc_pred(
@@ -73,18 +73,16 @@ end
 
 
 function train(
-    capacity::Int,
     experiences::Int64,
     steps::Int64,
     epsilon::Float32,
+    sample_size::Int,
     buff_size::Int,
     gamma::Float64
 )
 
     history = History{Experience}(buff_size)
     model, optimizer = init_network()
-
-    sample_size = 100
 
     for experience in 1:experiences
         state = [init_state]
@@ -115,7 +113,8 @@ function train(
             _, grads = Flux.withgradient(model) do m
                 acc = 0
                 for (x, y) in data
-                    y_pred = maximum(m(x[1]))
+                    phi_values = m(x[1])
+                    y_pred = phi_values[x[2] + 1]
                     acc += Flux.mse(y_pred, y)
                 end
                 acc
@@ -134,6 +133,6 @@ function train(
 end
 
 
-train(40, 10000, 100, 0.3f0, 100, 0.99)
+train(600, 400, 0.2f0, 200, 2000, 0.99)
 
 Gym.close(env)
