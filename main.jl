@@ -66,10 +66,6 @@ function calc_pred(
     end
 end
 
-function calc_loss(pred, value)
-    abs2(pow((pred - value)))
-end
-
 
 function train(
     experiences::Int64,
