@@ -1,7 +1,7 @@
 using Gym
 using Flux
 using Distributions
-
+using Plots
 include("history.jl")
 
 env = Gym.make("CartPole-v1"; render_mode=:human)
@@ -83,8 +83,11 @@ function train(
 
     history = History{Experience}(buff_size)
     model, optimizer = init_network()
+    times = []
+    episodes = []
 
     for experience in 1:experiences
+        time = steps
         state = [init_state]
         phi = process(4, state)
         Gym.reset!(env)
@@ -97,9 +100,9 @@ function train(
             # calculate the experience for this transition
             state = push!(state, observation)
             phi_next = process(4, state)
-            experience = (phi, action, reward, phi_next)
+            exp = (phi, action, reward, phi_next)
             phi = phi_next
-            Add!(history, experience)
+            Add!(history, exp)
 
             # collect minibatch data from history sample
             data = []
@@ -122,11 +125,14 @@ function train(
             Flux.update!(optimizer, model, grads[1])
 
             if terminated || truncated
+                time = t
                 break
             end
         end
-
-
+        push!(times, experience)
+        push!(episodes, time)
+        time_plt = plot(times, episodes)
+        display(time_plt)
 
     end
 
