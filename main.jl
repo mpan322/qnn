@@ -1,6 +1,8 @@
 using Gym
 using Flux
 using Distributions
+using MLUtils
+
 include("history.jl")
 
 env = Gym.make("CartPole-v1"; render_mode=:human)
@@ -16,14 +18,17 @@ function select_action(
     if rand() < epsilon
         return rand(action_rng, Gym.action_space(env))
     end
-    Int(round(only(model(phi))))
+
+    values = model(phi)
+    best_idx = argmax(values)
+    (values[best_idx], best_idx - 1)
 end
 
 function init_network()
     model = Chain(
         Dense(20 => 4, relu),
         Dense(4 => 4, relu),
-        Dense(4 => 1, sigmoid))
+        Dense(4 => 2))
 
     optimizer = Flux.setup(Flux.Adam(0.01), model)
 
@@ -44,12 +49,36 @@ end
 
 Experience = Tuple{Vector{Float64},Int64,Float64,Vector{Float64}}
 
+function is_terminal(experience::Experience)
+    experience[4][5] == 1
+end
+
+function calc_pred(
+    gamma::Float64,
+    experience::Experience,
+    model
+)
+    phi = experience[3]
+    phi_next = experience[5]
+    if is_terminal(experience)
+        return phi
+    else
+        return phi + gamma * max(model(phi_next))
+    end
+end
+
+function calc_loss(pred, value)
+    abs2(pow((pred - value)))
+end
+
+
 function train(
     capacity::Int,
     experiences::Int64,
     steps::Int64,
     epsilon::Float32,
-    buff_size::Int
+    buff_size::Int,
+    gamma::Float64
 )
 
     history = History{Experience}(buff_size)
@@ -63,7 +92,7 @@ function train(
         Gym.reset!(env)
         for t in 1:steps
             # perform next environment/action step
-            action = select_action(epsilon, model, phi)
+            value, action = select_action(epsilon, model, phi)
             observation, reward, terminated, truncated, _ = Gym.step!(env, action)
             push!(observation, Int64(terminated || truncated))
 
@@ -74,16 +103,22 @@ function train(
             phi = phi_next
             Add!(history, experience)
 
-            # minibatch GD on sample from history
+            # collect minibatch data from history sample
+            data = []
             samples = Sample!(sample_size, history)
-
             for sample in samples
-                println("SAMPLE!")
+                y = calc_pred(gamma, sample, model)
+                push!(data, (sample, y))
             end
-            # y_j = ...
 
-            # gradient = calc_gradient()
-            # update_wi
+            # perform one gradient step
+            _, grads = Flux.withgradient(model) do m
+                for (x, y) in data
+                    y_pred = max(m(x[3]))
+                    Flux.mse(y_pred, y)
+                end
+            end
+            Flux.update(optimizer, model, grads)
 
             if terminated || truncated
                 break
@@ -97,6 +132,6 @@ function train(
 end
 
 
-train(1, 100, 100, 0.1f0, 100)
+train(1, 100, 100, 0.1f0, 100, 0.99)
 
 Gym.close(env)
