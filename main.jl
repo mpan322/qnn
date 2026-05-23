@@ -71,6 +71,7 @@ function train(
     experiences::Int64,
     steps::Int64,
     epsilon::Float32,
+    epsilonDecay::Float32,
     sample_size::Int,
     buff_size::Int,
     gamma::Float64
@@ -80,15 +81,17 @@ function train(
     model, optimizer = init_network()
     times = []
     episodes = []
+    newEpsilon = epsilon
 
     for experience in 1:experiences
+        newEpsilon = newEpsilon * epsilonDecay
         time = steps
         state = [init_state]
         phi = process(4, state)
         Gym.reset!(env)
         for t in 1:steps
             # perform next environment/action step
-            action = select_action(epsilon, model, phi)
+            action = select_action(newEpsilon, model, phi)
             observation, reward, terminated, truncated, _ = Gym.step!(env, action)
             push!(observation, Int64(terminated || truncated))
 
@@ -134,6 +137,6 @@ function train(
 end
 
 
-train(600, 400, 0.2f0, 200, 2000, 0.99)
+train(600, 500, 1f0, .99f0, 200, 2000, 0.99)
 
 Gym.close(env)
