@@ -1,7 +1,6 @@
 using Gym
 using Flux
 using Distributions
-using MLUtils
 
 include("history.jl")
 
@@ -21,7 +20,6 @@ function select_action(
     end
 
     values = model(phi)
-    println(values)
     _, index = findmax(values)
     index - 1
 end
@@ -122,7 +120,7 @@ function train(
                 end
                 acc
             end
-            # Flux.update(optimizer, model, grads)
+            Flux.update!(optimizer, model, grads[1])
 
             if terminated || truncated
                 break

@@ -2,7 +2,7 @@
 
 julia_version = "1.12.6"
 manifest_format = "2.0"
-project_hash = "cfea1c8bfb73626ba04b6bf0eb056e36c215afb0"
+project_hash = "139b092ecc37fa62f12433a89d14ee7487e16d03"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "bbc22a9a08a0ef6460041086d8a7b27940ed4ffd"
@@ -561,9 +561,7 @@ version = "1.0.2"
 
 [[deps.Gym]]
 deps = ["ColorTypes", "Flux", "GLFW", "Logging", "ModernGL", "PNGFiles", "Random", "Statistics"]
-git-tree-sha1 = "dc425d0d1720061ad7d9a33239d86aa84fc47b18"
-repo-rev = "main"
-repo-url = "Gym.jl"
+path = "/Users/grahamheathcote/Desktop/Repositories/Gym.jl"
 uuid = "4a600378-1916-4b85-9c78-8432c5c73ab2"
 version = "0.1.0"
 
