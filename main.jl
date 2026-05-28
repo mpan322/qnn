@@ -41,19 +41,19 @@ function process(n, state)
     n = size(init, 1)
     if n < 20
         diff = 20 - n
-        return reshape([init; zeros(diff, 1)], :)
+        return Float32.(reshape([init; zeros(diff, 1)], :))
     end
-    return reshape(init, :)
+    return Float32.(reshape(init, :))
 end
 
-Experience = Tuple{Vector{Float64},Int64,Float64,Vector{Float64}}
+Experience = Tuple{Vector{Float32}, Int32, Float32,Vector{Float32}}
 
 function is_terminal(experience::Experience)
     experience[4][end] == 1
 end
 
 function calc_pred(
-    gamma::Float64,
+    gamma::Float32,
     experience::Experience,
     model
 )
@@ -68,13 +68,13 @@ end
 
 
 function train(
-    experiences::Int64,
-    steps::Int64,
+    experiences::Int32,
+    steps::Int32,
     epsilon::Float32,
     epsilonDecay::Float32,
-    sample_size::Int,
-    buff_size::Int,
-    gamma::Float64
+    sample_size::Int32,
+    buff_size::Int32,
+    gamma::Float32
 )
 
     history = History{Experience}(buff_size)
@@ -91,14 +91,14 @@ function train(
         Gym.reset!(env)
         for t in 1:steps
             # perform next environment/action step
-            action = select_action(newEpsilon, model, phi)
+            action = Int32(select_action(newEpsilon, model, phi))
             observation, reward, terminated, truncated, _ = Gym.step!(env, action)
-            push!(observation, Int64(terminated || truncated))
+            push!(observation, Int32(terminated || truncated))
 
             # calculate the experience for this transition
-            state = push!(state, observation)
+            state = push!(state, Float32.(observation))
             phi_next = process(4, state)
-            exp = (phi, action, reward, phi_next)
+            exp = (phi, action, Float32(reward), phi_next)
             phi = phi_next
             Add!(history, exp)
 
@@ -137,6 +137,6 @@ function train(
 end
 
 
-train(600, 500, 1f0, .99f0, 200, 2000, 0.99)
+train(Int32(600), Int32(500), 1f0, .99f0, Int32(200), Int32(2000), 0.99f0)
 
 Gym.close(env)

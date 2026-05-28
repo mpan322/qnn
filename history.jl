@@ -1,10 +1,10 @@
 mutable struct History{T}
     under::Array{T}
-    ptr::Int
+    ptr::Int32
     full::Bool
 end
 
-function History{T}(size::Int) where {T}
+function History{T}(size::Int32) where {T}
     under = Array{T}(undef, size)
     return History{T}(under, 1, false)
 end
@@ -19,7 +19,7 @@ function Add!(buffer::History{T}, data::T) where {T}
     buffer.ptr = buffer.ptr % n + 1
 end
 
-function Sample!(count::Int, buffer::History{T}) where {T}
+function Sample!(count::Int32, buffer::History{T}) where {T}
     if buffer.full
         rand(buffer.under, count)
     elseif buffer.ptr == 1 && !buffer.full
